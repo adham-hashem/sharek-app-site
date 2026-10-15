@@ -16,8 +16,14 @@ Static Arabic/English website for the SHARek app. It includes the public homepag
 
 ## Before public release
 
-- Set up working email addresses for `privacy@sharek.space` and `support@sharek.space`, or replace these addresses in the HTML files with addresses you monitor.
+- Monitor `mrd.shams1@gmail.com` for account-deletion, privacy, and support requests; replace it in the HTML files if the contact address changes.
 - Review the privacy policy against the final production data practices, retention rules, and deletion process. Deletion requests sent through the page currently require manual handling by the app operator; this static site does not delete Supabase accounts automatically.
+- Follow the internal `SharekApp/project/ACCOUNT_DELETION_RUNBOOK.md` for full and selected-data deletion. Before deploying the published 30-day periods, verify that the privacy mailbox is monitored, uploaded storage objects are removed, and **all** production backups (including PITR and manual exports) expire within the promised limit.
+- After changing `privacy/index.html`, deploy this site and confirm `https://www.sharek.space/privacy` redirects to a public HTTPS page displaying the new update date. Editing this folder alone does not update the policy linked in Play Console.
+- After changing `delete-account/index.html`, deploy this site and confirm `https://www.sharek.space/delete-account` publicly shows the data categories, retention periods, and selected-data deletion instructions before updating Play Console.
+- Make sure the Play Console Data safety answers cover email/account IDs, profile data including optional religion, user content, precise and approximate location, app activity, and notification tokens as actually collected, including through service providers. Keep those answers consistent with the policy and app behavior.
+- Check that deletion requests are actually processed for the Supabase account and associated data, with any legal or security retention documented, and that the privacy mailbox accepts incoming messages.
+- If the Play developer's listed name differs from SHARek, identify the responsible developer in the policy as well as the app name.
 - Register/verify the domain with your registrar and Google Search Console. Vercel hosting alone does not prove domain ownership.
 
 The site does not include analytics, ad scripts, API keys, or a client-side Supabase key.
