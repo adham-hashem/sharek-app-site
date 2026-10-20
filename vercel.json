@@ -1,4 +1,5 @@
 {
   "cleanUrls": true,
-  "trailingSlash": true
+  "trailingSlash": true,
+  "rewrites": [{"source":"/meals/:token","destination":"/api/meal?token=:token"}]
 }
