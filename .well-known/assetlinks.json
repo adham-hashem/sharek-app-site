@@ -1,1 +1,13 @@
-[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.sharek.mobile","sha256_cert_fingerprints":["46:B2:B5:1C:7F:27:CF:FD:69:F7:DE:A8:C2:CF:94:99:0F:51:B3:CE:8C:92:4E:CC:A3:CD:48:D0:46:17:C7:28"]}}]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.sharek.mobile",
+      "sha256_cert_fingerprints": [
+        "46:B2:B5:1C:7F:27:CF:FD:69:F7:DE:A8:C2:CF:94:99:0F:51:B3:CE:8C:92:4E:CC:A3:CD:48:D0:46:17:C7:28",
+        "26:1A:24:9D:AD:9F:61:F2:18:7C:69:EE:FC:D4:A0:48:3B:84:27:99:63:2E:B5:27:88:64:39:E9:57:18:4A:32"
+      ]
+    }
+  }
+]
