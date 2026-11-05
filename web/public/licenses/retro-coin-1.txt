@@ -1,0 +1,22 @@
+SHARek third-party audio notice
+Checked: 2026-10-17
+
+Title: Retro Coin 1
+Creator: Driken5482
+Original listing: https://pixabay.com/sound-effects/film-special-effects-retro-coin-1-236677/
+License: Pixabay Content License
+License summary: https://pixabay.com/service/license-summary/
+Terms: https://pixabay.com/service/terms/
+
+The official listing identifies this sound as licensed under the Pixabay
+Content License. The license permits commercial use as part of a broader
+creative work, without mandatory attribution, subject to its restrictions.
+This recording is integrated into SHARek as meal-success feedback; it must
+not be redistributed or sold as a standalone sound library.
+Retain the source and license records when publishing a release.
+
+Local source: assets/driken5482-retro-coin-1-236677.mp3
+SHA-256: A5FD054F4A7937190CC35A78C7B5776194650CAE3FC072CB93DF669DFBA75C05
+The supplied MP3 is bundled with the application. Runtime playback does not
+contact Pixabay or download the sound from an external host.
+

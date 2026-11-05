@@ -1,0 +1,8 @@
+SHARek meal-request notification tone
+
+Original, programmatically synthesized three-note chime (E5, G#5, B5), 24 kHz mono PCM.
+Created for SHARek on 2026-10-18. No third-party recording or samples were used.
+Dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+
+Source asset: android/app/src/main/res/raw/meal_request.wav
+Used by Android notification channels only. The separate Retro Coin success sound is unchanged.

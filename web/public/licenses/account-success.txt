@@ -1,0 +1,19 @@
+SHARek third-party audio notice
+Checked: 2026-10-18
+
+Title: Short Success Sound Glockenspiel Treasure Video Game
+Artist: FunWithSound (Freesound)
+Pixabay account: freesound_community
+Original listing: https://pixabay.com/sound-effects/film-special-effects-short-success-sound-glockenspiel-treasure-video-game-6346/
+License: Pixabay Content License (as stated on the official listing)
+License summary: https://pixabay.com/service/license-summary/
+Terms: https://pixabay.com/service/terms/
+
+Integrated into SHARek as feedback after successful registration or explicit
+login. Keep this source record with the application; do not redistribute
+the recording as a standalone sound asset/library.
+
+Local source: assets/freesound_community-short-success-sound-glockenspiel-treasure-video-game-6346.mp3
+SHA-256: 451BF706E5AABFD718C918AE1423D387DA89DF7847B0647DFD55A64341D1E1A2
+The supplied MP3 is bundled unchanged. Playback uses the app's local asset,
+without contacting Pixabay or depending on a remote audio URL.

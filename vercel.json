@@ -1,5 +1,37 @@
 {
   "cleanUrls": true,
   "trailingSlash": true,
-  "rewrites": [{"source":"/meals/:token/","destination":"/api/meal/?token=:token"}]
+  "rewrites": [
+    {
+      "source": "/meals/:token/",
+      "destination": "/api/meal/?token=:token"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/app/index.html"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": null,
+  "headers": [
+    {
+      "source": "/app/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/app/firebase-messaging-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ]
 }

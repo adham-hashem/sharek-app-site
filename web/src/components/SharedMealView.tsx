@@ -1,0 +1,11 @@
+import {useEffect,useState} from 'react';
+import {ArrowLeft} from 'lucide-react';
+import {supabase,type CommunityMeal,type Language} from '@/lib/supabase';
+import {MealDetail} from './MealDetail';
+import type {ChatOpenResult} from '@/lib/community-chat';
+export function SharedMealView({token,language,currentUserId,userLat,userLng,onBack,onReserve,onMessageDonor}:{token:string;language:Language;currentUserId:string;userLat:number|null;userLng:number|null;onBack:()=>void;onReserve:(meal:CommunityMeal,quantity?:number)=>Promise<{ok:boolean;message:string}>;onMessageDonor:(mealId:string,donorId:string)=>Promise<ChatOpenResult>}){
+ const [meal,setMeal]=useState<{meal_id:string;name:string;description:string;photo_url:string|null;available:boolean}|null>(null),[loading,setLoading]=useState(true),[retry,setRetry]=useState(0),ar=language==='ar';
+ useEffect(()=>{let alive=true;setLoading(true);void supabase.rpc('get_public_meal_share',{p_token:token}).then(({data,error})=>{if(alive){setMeal(error?null:data);setLoading(false);}});return()=>{alive=false;};},[token,retry]);
+ if(meal?.available)return <div className="shared-meal-view"><MealDetail language={language} mealId={meal.meal_id} currentUserId={currentUserId} userLat={userLat} userLng={userLng} onBack={onBack} onReserve={onReserve} onMessageDonor={onMessageDonor}/></div>;
+ return <section className="meal-detail-page" dir={ar?'rtl':'ltr'}><header className="my-meals-header"><button className="icon-button" onClick={onBack} aria-label={ar?'رجوع':'Back'}><ArrowLeft size={20}/></button><h2>SHARek</h2></header><div className="meal-detail-body">{loading?<p role="status">{ar?'جارٍ تحميل الوجبة…':'Loading meal…'}</p>:meal?<>{meal.photo_url&&<img className="meal-detail-cover" src={meal.photo_url} alt={meal.name}/>}<h2>{meal.name}</h2><p>{meal.description}</p><p role="status">{ar?'هذه الوجبة غير متاحة للحجز حاليًا؛ قد تكون محجوزة أو مستلمة أو منتهية الصلاحية.':'This meal is unavailable for booking; it may be reserved, received, or expired.'}</p></>:<p role="alert">{ar?'تعذر فتح الوجبة. قد يكون الرابط غير صالح أو تمت إزالة الوجبة.':'Could not open this meal. The link may be invalid or the meal removed.'}</p>}<button className="text-button" onClick={()=>setRetry(value=>value+1)}>{ar?'إعادة التحقق':'Check again'}</button></div></section>;
+}
