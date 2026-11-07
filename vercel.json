@@ -11,7 +11,7 @@
       "destination": "/app/"
     },
     {
-      "source": "/app/:path*",
+      "source": "/app/:path*/",
       "destination": "/app/"
     }
   ],
