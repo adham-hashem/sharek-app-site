@@ -8,11 +8,11 @@
     },
     {
       "source": "/marketplace/:id/",
-      "destination": "/app/index.html"
+      "destination": "/app/"
     },
     {
       "source": "/app/:path*",
-      "destination": "/app/index.html"
+      "destination": "/app/"
     }
   ],
   "buildCommand": "npm run build",
