@@ -1,4 +1,4 @@
-import { createClient, processLock } from '@supabase/supabase-js';
+import { createClient, navigatorLock, processLock } from '@supabase/supabase-js';
 import type { SharingMode, CollectionState } from './meal-sharing';
 import { Capacitor } from '@capacitor/core';
 import { secureStorage } from './secure-storage';
@@ -13,7 +13,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     flowType: 'pkce', persistSession: true, autoRefreshToken: true,
     detectSessionInUrl: !Capacitor.isNativePlatform(),
-    storage: secureStorage, storageKey: AUTH_STORAGE_KEY, lock: processLock,
+    storage: secureStorage, storageKey: AUTH_STORAGE_KEY,
+    // Web: browser tabs share the stored session, so refreshes must be locked across tabs.
+    lock: Capacitor.isNativePlatform() ? processLock : navigatorLock,
   },
 });
 
