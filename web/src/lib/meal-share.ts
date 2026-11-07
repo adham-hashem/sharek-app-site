@@ -3,8 +3,13 @@ import {supabase} from './supabase';
 export const MEAL_LINK_ORIGIN='https://www.sharek.space';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NativeMealShare=registerPlugin<{share(options:{title:string;text:string;url:string;chooserTitle:string}):Promise<void>}>('MealShare');
+// Website links: https://(www.)sharek.space/<kind>/<id>/ or the web app's /app/<kind>/<id>/ (also on the current host for previews).
+export function parseSiteLink(raw:string,kind:'meals'|'marketplace'):string|null{
+ try{const url=new URL(raw);const hostOk=url.protocol==='https:'&&(url.hostname==='www.sharek.space'||url.hostname==='sharek.space')||(typeof window!=='undefined'&&url.host===window.location.host);if(!hostOk)return null;
+ const parts=url.pathname.split('/').filter(Boolean);if(parts[0]==='app')parts.shift();return parts[0]===kind&&uuid.test(parts[1]??'')?parts[1]:null;}catch{return null;}
+}
 export function parseMealLink(raw:string):string|null{
- try{const url=new URL(raw);if(url.protocol==='https:'&&url.hostname==='www.sharek.space')return uuid.test(url.pathname.split('/')[2]??'')&&url.pathname.split('/')[1]==='meals'?url.pathname.split('/')[2]:null;
+ try{const url=new URL(raw);if(url.protocol!=='com.sharek.foodsharing:')return parseSiteLink(raw,'meals');
  if(url.protocol==='com.sharek.foodsharing:'&&url.hostname==='meal'){const token=url.pathname.split('/')[1];return uuid.test(token)?token:null;}}catch{}return null;
 }
 export async function createMealShare(mealId:string){

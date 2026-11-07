@@ -7,6 +7,10 @@
       "destination": "/api/meal/?token=:token"
     },
     {
+      "source": "/marketplace/:id/",
+      "destination": "/app/index.html"
+    },
+    {
       "source": "/app/:path*",
       "destination": "/app/index.html"
     }

@@ -5,7 +5,7 @@ import {distanceKm,validCoordinates,locationIssue,type LocationFix} from '@/lib/
 import {type PickupPoint} from '@/lib/meal-sharing';
 import {PickupMap} from './PickupMap';
 import {resolveLocationAreaInfo as lookupArea,type AreaInfo} from '@/lib/location-area';
-import {openMealShareSheet} from '@/lib/meal-share';
+import {openMealShareSheet,parseSiteLink} from '@/lib/meal-share';
 import {communityAreas,type BoundaryDataset} from '@/lib/community-areas';
 import {findCommunityArea} from '@/lib/community-filters';
 
@@ -22,7 +22,9 @@ export function marketStatusLabel(status:MarketStatus,ar:boolean){
  const names:Record<MarketStatus,[string,string]>={available:['متاح','Available'],paused:['موقوف مؤقتًا','Paused'],unavailable:['موقوف مؤقتًا','Paused'],completed:['مكتمل','Delivered'],expired:['منتهي الصلاحية','Expired'],deleted:['محذوف','Deleted']};
  return names[status][ar?0:1];
 }
-export function parseMarketLink(raw:string){try{const url=new URL(raw);const id=url.protocol==='com.sharek.foodsharing:'&&url.hostname==='marketplace'?url.pathname.slice(1):url.protocol==='https:'&&url.hostname==='www.sharek.space'&&url.pathname.startsWith('/marketplace/')?url.pathname.split('/')[2]:null;return id&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)?id:null;}catch{return null;}}
+// Shared links point to the website; Android App Links open them in the app when it is installed.
+export const marketWebLink=(id:string)=>`https://www.sharek.space/marketplace/${id}/`;
+export function parseMarketLink(raw:string){try{const url=new URL(raw);const id=url.protocol==='com.sharek.foodsharing:'&&url.hostname==='marketplace'?url.pathname.slice(1):parseSiteLink(raw,'marketplace');return id&&/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)?id:null;}catch{return null;}}
 
 // Display periods offered at publication and renewal.
 type Duration='1d'|'3d'|'1w'|'2w'|'1m'|'custom'|'none';
@@ -103,7 +105,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
  };
  const perform=async(action:()=>Promise<void>,onError:(message:string)=>void=setError)=>{if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await action();}catch(cause){console.warn('[market] action failed',cause);onError(reason(cause));}finally{lock.current=false;if(alive.current)setBusy(false);}};
  const message=(item:MarketListing)=>void perform(async()=>{const {data,error:issue}=await supabase.rpc('open_marketplace_chat',{p_listing_id:item.id});if(issue||!data)throw issue??new Error();onChat(data,item.owner_id);});
- const share=(item:MarketListing)=>void perform(async()=>{const check=await supabase.rpc('marketplace_feed',{p_id:item.id,p_own:false});if(check.error||check.data?.[0]?.status!=='available')throw new Error('MARKET_UNAVAILABLE');const url=`com.sharek.foodsharing://marketplace/${item.id}`;const payload={title:`${item.title} — SHARek`,text:item.title,url};try{if(await openMealShareSheet(payload,ar))return;}catch(cause){if(cause instanceof Error&&cause.name==='AbortError')return;}setShareUrl(url);});
+ const share=(item:MarketListing)=>void perform(async()=>{const check=await supabase.rpc('marketplace_feed',{p_id:item.id,p_own:false});if(check.error||check.data?.[0]?.status!=='available')throw new Error('MARKET_UNAVAILABLE');const url=marketWebLink(item.id);const payload={title:`${item.title} — SHARek`,text:item.title,url};try{if(await openMealShareSheet(payload,ar))return;}catch(cause){if(cause instanceof Error&&cause.name==='AbortError')return;}setShareUrl(url);});
  const statusFor:Record<Action,MarketStatus>={complete:'completed',pause:'paused',resume:'available',delete:'deleted'};
  const runAction=()=>void perform(async()=>{
   if(!confirm)return;const next=statusFor[confirm.action];
@@ -214,7 +216,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
   if(commentsFor)await loadComments(commentsFor.id);
  });
  const showConversations=(item:MarketListing)=>{setMenuFor(null);void perform(async()=>{const {data,error:issue}=await supabase.rpc('marketplace_conversations',{p_listing_id:item.id});if(issue)throw issue;setConversations(data??[]);});};
- const listingLink=(item:MarketListing)=>`com.sharek.foodsharing://marketplace/${item.id}`;
+ const listingLink=(item:MarketListing)=>marketWebLink(item.id);
  const copyLink=(item:MarketListing)=>{setMenuFor(null);
   void navigator.clipboard.writeText(listingLink(item))
    .then(()=>setNotice(tr('تم نسخ رابط المنشور.','Post link copied.')))

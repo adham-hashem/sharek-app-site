@@ -135,6 +135,12 @@ const copy: Record<Language, Copy> = {
   },
 };
 
+// Website: a shared meal/marketplace link opens the web app. Remember the target for after sign-in,
+// then show the clean /app/ URL so reloads do not reopen it.
+(()=>{if(Capacitor.isNativePlatform())return;try{const href=window.location.href,marketId=parseMarketLink(href),token=parseMealLink(href);
+ if(marketId)sessionStorage.setItem('sharek-pending-marketplace',marketId);else if(token)sessionStorage.setItem('sharek-pending-meal-token',token);else return;
+ window.history.replaceState(null,'',import.meta.env.BASE_URL);}catch{/* storage blocked: the URL still carries the link */}})();
+
 function App() {
   const [sharedMealToken,setSharedMealToken]=useState<string|null>(()=>{try{return parseMealLink(window.location.href)??sessionStorage.getItem('sharek-pending-meal-token');}catch{return null;}});
   const closeSharedMeal=useCallback(()=>{setSharedMealToken(null);try{sessionStorage.removeItem('sharek-pending-meal-token');}catch{}},[]);
