@@ -8,7 +8,7 @@
     },
     {
       "source": "/marketplace/:id/",
-      "destination": "/app/"
+      "destination": "/api/market/?id=:id"
     },
     {
       "source": "/app/:path*/",
