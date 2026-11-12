@@ -3,6 +3,7 @@ import { ArrowLeft, Bell, Heart, MessageCircle, Utensils, Globe2, Award, Megapho
 import { supabase, type Language } from '@/lib/supabase';
 import { useNotifications } from './NotificationProvider';
 import {NativePush,nativePushSupported} from '@/lib/native-push';
+import {DAILY_GOODNESS_DEFAULT,loadDailyGoodness,saveDailyGoodness,type DailyGoodness} from '@/lib/daily-goodness';
 
 type Props = {
   language: Language;
@@ -28,6 +29,9 @@ export function NotificationSettings({ language, onBack }: Props) {
   const [error,setError]=useState('');
   const [settings, setSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [goodness,setGoodness]=useState<DailyGoodness|null>(null);
+  const [goodnessState,setGoodnessState]=useState<'loading'|'ready'|'saving'|'unavailable'>('loading');
+  const [goodnessError,setGoodnessError]=useState('');
 
   const copy = {
     title: isAr ? 'إعدادات الإشعارات' : 'Notification Settings',
@@ -49,7 +53,17 @@ export function NotificationSettings({ language, onBack }: Props) {
       const { data } = await supabase.from('notification_settings').select('*').maybeSingle();
       if (data) setSettings(data as Settings);
     })();
+    let active=true;
+    void loadDailyGoodness().then(value=>{if(active){setGoodness(value);setGoodnessState('ready');}}).catch(()=>{if(active){setGoodness(DAILY_GOODNESS_DEFAULT);setGoodnessState('unavailable');}});
+    return()=>{active=false;};
   }, []);
+
+  const saveGoodness=(next:{enabled:boolean;send_time:string})=>{
+    if(!goodness||goodnessState==='saving')return;
+    const previous=goodness;setGoodness({...goodness,...next});setGoodnessState('saving');setGoodnessError('');
+    void saveDailyGoodness(next).then(value=>{setGoodness(value);setGoodnessState('ready');})
+      .catch(()=>{setGoodness(previous);setGoodnessState('ready');setGoodnessError(isAr?'تعذر حفظ إعداد رسالة الخير اليومية. حاول مجددًا.':'Could not save the daily goodness message setting. Retry.');});
+  };
 
   const toggle = (key: keyof Settings) => {
     if (!settings) return;
@@ -105,6 +119,32 @@ export function NotificationSettings({ language, onBack }: Props) {
             <span className={`toggle-switch ${settings[key] ? 'on' : ''}`}><span className="toggle-knob" /></span>
           </button>
         ))}
+        {goodness&&<section className="goodness-settings" aria-labelledby="goodness-title">
+          <div className="goodness-head">
+            <span className="goodness-icon" aria-hidden="true">❤️</span>
+            <span className="goodness-text">
+              <strong id="goodness-title">{isAr?'رسالة الخير اليومية ❤️':'Daily Goodness Message ❤️'}</strong>
+              <small>{isAr?'رسالة يومية بسيطة تذكّرك بقيمة المشاركة والعطاء وتساعدك على البقاء قريبًا من مجتمع SHARek.':'Receive a daily message of goodness that inspires sharing, kindness, and participation in the SHARek community.'}</small>
+            </span>
+            <button type="button" role="switch" aria-checked={goodness.enabled} aria-labelledby="goodness-title" disabled={goodnessState!=='ready'} className="goodness-switch" onClick={()=>saveGoodness({enabled:!goodness.enabled,send_time:goodness.send_time})}>
+              <span className={`toggle-switch ${goodness.enabled?'on':''}`}><span className="toggle-knob"/></span>
+            </button>
+          </div>
+          <label className="goodness-time">
+            <span>{isAr?'وقت الرسالة':'Message time'}</span>
+            <input type="time" dir="ltr" value={goodness.send_time} disabled={!goodness.enabled||goodnessState!=='ready'} onChange={e=>{if(/^\d{2}:\d{2}$/.test(e.target.value))saveGoodness({enabled:goodness.enabled,send_time:e.target.value});}}/>
+          </label>
+          <p className={`goodness-status ${goodness.enabled&&pushEnabled?'on':''}`} role="status">
+            {goodnessState==='unavailable'
+              ?(isAr?'هذه الميزة غير متاحة الآن. حاول لاحقًا.':'This feature is not available right now. Try again later.')
+              :!goodness.enabled
+              ?(isAr?'رسالة الخير اليومية متوقفة.':'Daily goodness messages are off.')
+              :!pushEnabled
+              ?(isAr?'فعّل الإشعارات بالأعلى لتصلك الرسالة. إذا رُفض الإذن، اسمح بالإشعارات لـ SHARek من إعدادات الهاتف.':'Turn on notifications above to receive it. If permission was denied, allow notifications for SHARek in your phone settings.')
+              :(isAr?`مفعّلة — تصلك رسالة واحدة يوميًا الساعة ${goodness.send_time} بتوقيتك المحلي.`:`On — one message a day at ${goodness.send_time}, your local time.`)}
+          </p>
+          {goodnessError&&<p role="alert" className="feedback error">{goodnessError}</p>}
+        </section>}
         {saving && <div className="notif-saving">{isAr ? 'جاري الحفظ...' : 'Saving...'}</div>}
       </div>
     </div>

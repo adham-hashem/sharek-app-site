@@ -2021,3 +2021,31 @@ input[type="password"], input[autocomplete="current-password"], input[autocomple
 .charities-notice span{flex:1 1 180px}
 .charities-spin{display:inline-block;vertical-align:-1px;animation:charities-spin 1s linear infinite}
 @keyframes charities-spin{to{transform:rotate(360deg)}}
+.goodness-settings{margin:14px 0 6px;padding:14px;border-radius:18px;background:linear-gradient(135deg,#fff7ef,#fff1e6);border:1px solid #f6d9c2;display:grid;gap:10px}
+.goodness-head{display:flex;align-items:flex-start;gap:10px}
+.goodness-icon{flex:0 0 38px;height:38px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:1.1rem;box-shadow:0 2px 8px rgba(240,100,39,.12)}
+.goodness-text{flex:1;display:grid;gap:3px}
+.goodness-text strong{color:#3b2a20;font-size:.92rem}
+.goodness-text small{color:#7d6656;font-size:.74rem;line-height:1.6}
+.goodness-switch{flex:0 0 auto;display:flex;align-items:center;background:none;border:0;padding:4px 0;cursor:pointer}
+.goodness-switch:disabled{opacity:.6;cursor:default}
+.goodness-time{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;border-radius:12px;padding:8px 12px;font-size:.82rem;color:#5b4536}
+.goodness-time input{border:1px solid #efd8c5;border-radius:10px;padding:6px 10px;font:inherit;color:#c45520;background:#fffaf5}
+.goodness-time input:disabled{opacity:.55}
+.goodness-status{margin:0;font-size:.74rem;color:#8b7465}
+.goodness-status.on{color:#2f7d4f}
+.market-share-overlay{align-items:flex-end}
+.market-share-sheet{width:min(440px,100%);border-radius:24px 24px 18px 18px;display:grid;gap:12px;padding:16px}
+.market-share-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.market-share-head h3{margin:0;font-size:1rem;color:#3b2a20}
+.market-share-item{margin:0;font-size:.8rem;color:#7d6656;line-height:1.6}
+.market-share-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.market-share-option{display:grid;justify-items:center;gap:6px;padding:10px 4px;border-radius:16px;background:#fffaf5;border:1px solid #f3e2d4;color:#4a3528;font-size:.72rem;font-weight:600;text-decoration:none;cursor:pointer;font-family:inherit}
+.market-share-option:active{transform:scale(.97)}
+.market-share-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#fff;background:#f06427}
+.market-share-option.whatsapp .market-share-icon{background:#25d366}
+.market-share-option.facebook .market-share-icon{background:#1877f2}
+.market-share-option.telegram .market-share-icon{background:#229ed9}
+.market-share-link{display:flex;gap:8px;align-items:center}
+.market-share-link input{flex:1;min-width:0;border:1px solid #efd8c5;border-radius:12px;padding:9px 10px;font-size:.75rem;background:#fffaf5;color:#5b4536}
+.market-share-link .primary-button{width:auto;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;padding:9px 14px}

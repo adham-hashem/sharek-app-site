@@ -20,5 +20,5 @@ export function createPushController(ports:Ports){
 }
 const uuid=(value:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export function validNativeAction(value:unknown,userId:string):value is NativeAction {
- const action=value as NativeAction|null;return Boolean(action&&action.recipient_id===userId&&uuid(action.notification_id)&&uuid(action.binding_id)&&uuid(action.related_id)&&['meal_request','meal','chat','community','app_update','marketplace','marketplace_message'].includes(action.related_type)&&(!action.requester_id||uuid(action.requester_id))&&(!action.action_type||(action.action_type==='accept_help'&&action.related_type==='meal_request'&&action.request_id===action.related_id)));
+ const action=value as NativeAction|null;return Boolean(action&&action.recipient_id===userId&&uuid(action.notification_id)&&uuid(action.binding_id)&&uuid(action.related_id)&&['meal_request','meal','chat','community','app_update','marketplace','marketplace_message','goodness_share','goodness_meals'].includes(action.related_type)&&(!action.requester_id||uuid(action.requester_id))&&(!action.action_type||(action.action_type==='accept_help'&&action.related_type==='meal_request'&&action.request_id===action.related_id)));
 }

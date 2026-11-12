@@ -27,6 +27,7 @@ function notifIcon(type: string) {
   if (type === 'NEW_CHAT_MESSAGE') return MessageCircle;
   if (type === 'NEW_ACHIEVEMENT') return Award;
   if (type === 'GENERAL_SHAReK_NOTIFICATION') return Megaphone;
+  if (type === 'DAILY_GOODNESS') return Heart;
   return Bell;
 }
 

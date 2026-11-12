@@ -37,5 +37,15 @@
         }
       ]
     }
-  ]
+  ],
+  "images": {
+    "sizes": [
+      640,
+      1200
+    ],
+    "domains": [
+      "vffncqujwdsvmxjehfgp.supabase.co"
+    ],
+    "minimumCacheTTL": 86400
+  }
 }

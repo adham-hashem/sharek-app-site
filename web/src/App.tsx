@@ -29,6 +29,7 @@ import {
 import { AUTH_STORAGE_KEY, NATIVE_OAUTH_REDIRECT_URL, supabase, type CommunityMeal, type Language, type Meal, type MealRequest, type Profile, type Religion, type UserRole } from '@/lib/supabase';
 import { useCommunityMeals } from '@/lib/use-community-meals';
 import { ProviderProfile } from '@/components/ProviderProfile';
+import { syncDailyGoodnessTimezone } from '@/lib/daily-goodness';
 import {detachPush} from '@/lib/native-push';
 import {notificationTarget} from '@/lib/notification-target';
 import { advanceMealRequest,isActiveHandover,isReceived,MEAL_REQUEST_SAVED,mergeRequestSnapshot } from '@/lib/meal-operations';
@@ -519,6 +520,7 @@ function HomeScreen({ sharedMealToken,onCloseSharedMeal,language, profile, role,
   const [quranView, setQuranView] = useState<'none' | 'dashboard' | 'reader' | 'index'>('none');
   const [quranPage, setQuranPage] = useState(1);
   const profileId = profile?.id;
+  useEffect(()=>{if(profileId)syncDailyGoodnessTimezone();},[profileId]);
   useEffect(()=>{
     if(!profileId)return;
     const channel=supabase.channel(`profile-appearance-${profileId}`).on('postgres_changes',{event:'UPDATE',schema:'public',table:'profiles',filter:`id=eq.${profileId}`},payload=>{
@@ -631,6 +633,9 @@ function HomeScreen({ sharedMealToken,onCloseSharedMeal,language, profile, role,
   const navigateNotification=useCallback(async(type:string,id:string|null,requesterId?:string)=>{
     if(!id)return true;
     if(type==='app_update'){window.dispatchEvent(new Event('sharek-check-update'));setNotifView('none');return true;}
+    // Daily goodness message: donors go to Share a Meal, people in need to the community meals.
+    if(type==='goodness_share'){setNotifView('none');if(isDonor)setDonorTab('share');else setBeneficiarySharing('share');return true;}
+    if(type==='goodness_meals'){setNotifView('none');setBeneficiarySharing('none');if(isDonor)setDonorTab('community');else setActiveTab('community');return true;}
     if(type==='marketplace'){
       const {data,error:targetError}=await supabase.rpc('marketplace_notification_target',{p_related_id:id});
       const target=data as {listing_id?:string;kind?:string;available?:boolean}|null;

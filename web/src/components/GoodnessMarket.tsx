@@ -5,7 +5,8 @@ import {distanceKm,validCoordinates,locationIssue,type LocationFix} from '@/lib/
 import {type PickupPoint} from '@/lib/meal-sharing';
 import {PickupMap} from './PickupMap';
 import {resolveLocationAreaInfo as lookupArea,type AreaInfo} from '@/lib/location-area';
-import {openMealShareSheet,parseSiteLink} from '@/lib/meal-share';
+import {MarketShareSheet,type MarketShare} from './MarketShareSheet';
+import {parseSiteLink} from '@/lib/meal-share';
 import {communityAreas,type BoundaryDataset} from '@/lib/community-areas';
 import {findCommunityArea} from '@/lib/community-filters';
 
@@ -48,7 +49,7 @@ const emptyListing=(userId:string,fix:LocationFix|null):MarketListing=>({id:cryp
 type Props={language:Language;userId:string;fix:LocationFix|null;countryCode?:string|null;onRetryLocation:()=>void;onBack:()=>void;initialId?:string|null;onChat:(thread:string,partner:string)=>void;onReport?:(ownerId:string,ownerName:string)=>void;focusComments?:boolean};
 export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,onBack,initialId=null,onChat,onReport,focusComments=false}:Props){
  const ar=language==='ar',tr=(a:string,b:string)=>ar?a:b;
- const [rows,setRows]=useState<MarketListing[]>([]),[own,setOwn]=useState(false),[category,setCategory]=useState<Category|'all'>('all'),[search,setSearch]=useState(''),[detail,setDetail]=useState<MarketListing|null>(null),[busy,setBusy]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[shareUrl,setShareUrl]=useState('');
+ const [rows,setRows]=useState<MarketListing[]>([]),[own,setOwn]=useState(false),[category,setCategory]=useState<Category|'all'>('all'),[search,setSearch]=useState(''),[detail,setDetail]=useState<MarketListing|null>(null),[busy,setBusy]=useState(false),[selected,setSelected]=useState<Set<string>>(()=>new Set()),[sharing,setSharing]=useState<MarketShare|null>(null);
  // Load state is separate from action errors: the empty message is only shown
  // after a successful load, and "Retry" only ever refetches.
  const [loading,setLoading]=useState(true),[loaded,setLoaded]=useState(false),[loadError,setLoadError]=useState(''),[error,setError]=useState('');
@@ -105,7 +106,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
  };
  const perform=async(action:()=>Promise<void>,onError:(message:string)=>void=setError)=>{if(lock.current)return;lock.current=true;setBusy(true);setError('');try{await action();}catch(cause){console.warn('[market] action failed',cause);onError(reason(cause));}finally{lock.current=false;if(alive.current)setBusy(false);}};
  const message=(item:MarketListing)=>void perform(async()=>{const {data,error:issue}=await supabase.rpc('open_marketplace_chat',{p_listing_id:item.id});if(issue||!data)throw issue??new Error();onChat(data,item.owner_id);});
- const share=(item:MarketListing)=>void perform(async()=>{const check=await supabase.rpc('marketplace_feed',{p_id:item.id,p_own:false});if(check.error||check.data?.[0]?.status!=='available')throw new Error('MARKET_UNAVAILABLE');const url=marketWebLink(item.id);const payload={title:`${item.title} — SHARek`,text:item.title,url};try{if(await openMealShareSheet(payload,ar))return;}catch(cause){if(cause instanceof Error&&cause.name==='AbortError')return;}setShareUrl(url);});
+ const share=(item:MarketListing)=>void perform(async()=>{const check=await supabase.rpc('marketplace_feed',{p_id:item.id,p_own:false});if(check.error||check.data?.[0]?.status!=='available')throw new Error('MARKET_UNAVAILABLE');setSharing(marketShare(item));});
  const statusFor:Record<Action,MarketStatus>={complete:'completed',pause:'paused',resume:'available',delete:'deleted'};
  const runAction=()=>void perform(async()=>{
   if(!confirm)return;const next=statusFor[confirm.action];
@@ -217,10 +218,11 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
  });
  const showConversations=(item:MarketListing)=>{setMenuFor(null);void perform(async()=>{const {data,error:issue}=await supabase.rpc('marketplace_conversations',{p_listing_id:item.id});if(issue)throw issue;setConversations(data??[]);});};
  const listingLink=(item:MarketListing)=>marketWebLink(item.id);
+ const marketShare=(item:MarketListing):MarketShare=>({title:`${item.title} — SHARek`,text:`${item.title} — ${tr('سوق الخير على SHARek','Goodness Market on SHARek')}`,url:listingLink(item)});
  const copyLink=(item:MarketListing)=>{setMenuFor(null);
   void navigator.clipboard.writeText(listingLink(item))
    .then(()=>setNotice(tr('تم نسخ رابط المنشور.','Post link copied.')))
-   .catch(()=>setShareUrl(listingLink(item)));
+   .catch(()=>setSharing(marketShare(item)));
  };
  const shift=(item:MarketListing,step:number)=>setPhotoIndex(current=>{
   const total=item.photos.length;if(total<2)return current;
@@ -379,7 +381,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
  {conversations&&<div className="modal-overlay" onClick={()=>setConversations(null)}><div className="modal-card market-sheet" onClick={event=>event.stopPropagation()}><h3>{tr('المحادثات المرتبطة بالغرض','Conversations about this item')}</h3>{!conversations.length&&<p>{tr('لا توجد محادثات مرتبطة بعد.','No linked conversations yet.')}</p>}<div className="market-sheet-list">{conversations.map(c=><button key={c.thread_id} className="secondary-button" onClick={()=>onChat(c.thread_id,c.partner_id)}><MessageCircle size={15}/>{c.partner_name??tr('مستخدم SHARek','SHARek member')}</button>)}</div><button className="text-button" onClick={()=>setConversations(null)}>{tr('إغلاق','Close')}</button></div></div>}
  {confirm&&<div className="modal-overlay"><div className="modal-card market-sheet" role="alertdialog" aria-modal="true"><h3>{confirmCopy[confirm.action][ar?0:1]}</h3><p>{confirm.ids.length>1&&`${confirm.ids.length} · `}{confirmCopy[confirm.action][ar?2:3]}</p><div className="market-sheet-actions"><button className={confirm.action==='delete'?'primary-button danger':'primary-button'} disabled={busy} onClick={runAction}>{busy?'…':tr('تأكيد','Confirm')}</button><button className="secondary-button" disabled={busy} onClick={()=>setConfirm(null)}>{tr('إلغاء','Cancel')}</button></div></div></div>}
  {renewing&&<div className="modal-overlay"><div className="modal-card market-sheet" role="dialog" aria-modal="true"><h3>{tr('مدة عرض الغرض','Display period')}</h3><p>{renewing.title}</p>{durationPicker(renewChoice,setRenewChoice,renewDay,setRenewDay)}<div className="market-sheet-actions"><button className="primary-button" disabled={busy||(renewChoice==='custom'&&expiryFor('custom',renewDay)===undefined)} onClick={renew}>{busy?'…':tr('تجديد العرض','Renew listing')}</button><button className="secondary-button" disabled={busy} onClick={()=>setRenewing(null)}>{tr('إلغاء','Cancel')}</button></div></div></div>}
- {shareUrl&&<div className="modal-overlay"><div className="modal-card"><h3>{tr('مشاركة العرض','Share listing')}</h3><input readOnly dir="ltr" value={shareUrl} onFocus={e=>e.target.select()}/><button className="primary-button" onClick={()=>void navigator.clipboard.writeText(shareUrl).then(()=>setShareUrl('')).catch(()=>setError(tr('انسخ الرابط من الحقل.','Copy the link from the field.')))}>{tr('نسخ الرابط','Copy link')}</button><button className="text-button" onClick={()=>setShareUrl('')}>{tr('إغلاق','Close')}</button></div></div>}
+ {sharing&&<MarketShareSheet share={sharing} language={language} onClose={()=>setSharing(null)}/>}
  {viewer&&<div className="modal-overlay market-viewer" onClick={()=>setViewer(null)}>
   <button className="icon-button market-viewer-close" aria-label={tr('إغلاق','Close')} onClick={()=>setViewer(null)}><X size={20}/></button>
   <img src={viewer.urls[viewer.index]} alt="" onClick={event=>event.stopPropagation()}/>
