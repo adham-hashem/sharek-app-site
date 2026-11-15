@@ -1,7 +1,7 @@
 export const PUBLIC_ORIGIN='https://www.sharek.space';
 const SUPABASE='https://vffncqujwdsvmxjehfgp.supabase.co';
 // Public "anon" key: it is shipped in the web app bundle anyway; access is limited by the database.
-const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZm5jcXVqd2Rzdm14amVoZmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NzAzMTgsImV4cCI6MjEwNzE0NjMxOH0.LB8P4Te60YbWAW3jyoP9KCaiNviNK8Fku7naj-_Zwfs';
+export const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmZm5jcXVqd2Rzdm14amVoZmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1NzAzMTgsImV4cCI6MjEwNzE0NjMxOH0.LB8P4Te60YbWAW3jyoP9KCaiNviNK8Fku7naj-_Zwfs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PHOTO_PATH=/^[A-Za-z0-9/_.-]{1,300}$/;
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

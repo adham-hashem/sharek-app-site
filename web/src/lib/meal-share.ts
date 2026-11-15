@@ -21,3 +21,12 @@ export async function openMealShareSheet(share:{title:string;text:string;url:str
  if(Capacitor.getPlatform()==='android'){await NativeMealShare.share({...share,chooserTitle:ar?'مشاركة الوجبة':'Share meal'});return true;}
  if(navigator.share){await navigator.share(share);return true;}return false;
 }
+// Public page for any published community meal (shareable by every user, not only the owner).
+export const communityMealLink=(mealId:string)=>`${MEAL_LINK_ORIGIN}/community/meals/${mealId}/`;
+export function parseCommunityMealLink(raw:string):{mealId:string;message:boolean}|null{
+ try{const url=new URL(raw);
+  if(!((url.protocol==='https:'&&(url.hostname==='www.sharek.space'||url.hostname==='sharek.space'))||(typeof window!=='undefined'&&url.host===window.location.host)))return null;
+  const parts=url.pathname.split('/').filter(Boolean);if(parts[0]==='app')parts.shift();
+  return parts[0]==='community'&&parts[1]==='meals'&&uuid.test(parts[2]??'')?{mealId:parts[2],message:url.searchParams.get('action')==='message'}:null;
+ }catch{return null;}
+}

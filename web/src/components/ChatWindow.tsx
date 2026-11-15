@@ -131,6 +131,8 @@ export function ChatWindow({
   const [ratingHover, setRatingHover] = useState(0);
   const [ratingSubmitting, setRatingSubmitting] = useState(false);
   const [hasRated, setHasRated] = useState(false);
+  const [ratingError,setRatingError]=useState('');
+  const [ratingThanks,setRatingThanks]=useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -588,23 +590,41 @@ export function ChatWindow({
     setBlockNotice(isAr?'تم إلغاء الحظر. يمكنكما التواصل حسب صلاحيات الشات.':'User unblocked. Messaging is available under normal chat permissions.');
   };
 
-  // Rating submission
+  // Rating submission. The request may come from the thread (chat opened from the list or a
+  // notification) rather than the requestId prop, so the loaded request is the source of truth.
+  const ratingRequestId=request?.id??requestId;
+  const ratingReviewType=request?.requester_id===currentUserId?'beneficiary_to_donor':'donor_to_beneficiary';
+  // A review may already exist (e.g. from the "meal received" popup): don't ask again.
+  useEffect(()=>{
+    if(!ratingRequestId||!request||!['RECEIVED','COMPLETED'].includes(request.status))return;
+    let active=true;
+    void supabase.rpc('get_my_review_for_request',{p_request_id:ratingRequestId,p_review_type:ratingReviewType}).then(({data})=>{
+      if(active&&Array.isArray(data)&&data.length>0){setHasRated(true);setShowRating(false);}
+    });
+    return()=>{active=false;};
+  },[ratingRequestId,ratingReviewType,request?.status]);// eslint-disable-line react-hooks/exhaustive-deps
   const submitRating = async () => {
-    if (ratingValue < 1 || !requestId) return;
-    setRatingSubmitting(true);
-    const isRequester = request?.requester_id === currentUserId;
-    const reviewType = isRequester ? 'beneficiary_to_donor' : 'donor_to_beneficiary';
+    if (ratingValue < 1 || ratingSubmitting) return;
+    if (!ratingRequestId) { setRatingError(isAr?'تعذر تحديد العملية المراد تقييمها. أعد فتح المحادثة.':'Could not identify the meal to rate. Reopen the chat.'); return; }
+    setRatingSubmitting(true);setRatingError('');
     const { error } = await supabase.rpc('submit_review', {
-      p_request_id: requestId,
+      p_request_id: ratingRequestId,
       p_rating: ratingValue,
       p_comment: null,
-      p_review_type: reviewType,
+      p_review_type: ratingReviewType,
     });
     setRatingSubmitting(false);
-    if (!error) {
-      setHasRated(true);
-      setShowRating(false);
+    const message=error?.message??'';
+    if (!error || message.includes('already reviewed')) {
+      setHasRated(true);setShowRating(false);setRatingThanks(true);window.setTimeout(()=>setRatingThanks(false),4000);
+      return;
     }
+    // Keep the selected stars so the user can retry.
+    setRatingError(message.includes('not completed')
+      ?(isAr?'لا يمكن التقييم قبل تأكيد استلام الوجبة.':'You can rate only after the meal is received.')
+      :message.includes('Only the')
+      ?(isAr?'هذا التقييم غير متاح لحسابك في هذه العملية.':'This review is not available for your account in this transaction.')
+      :(isAr?'تعذر إرسال التقييم. تحقق من الاتصال وأعد المحاولة.':'Could not submit the rating. Check your connection and retry.'));
   };
 
   // Advance request status
@@ -825,21 +845,27 @@ export function ChatWindow({
               <button
                 key={star}
                 className={`star-btn ${(ratingHover || ratingValue) >= star ? 'active' : ''}`}
+                type="button"
+                aria-label={isAr?`${star} من 5`:`${star} of 5`}
+                aria-pressed={ratingValue===star}
                 onMouseEnter={() => setRatingHover(star)}
                 onMouseLeave={() => setRatingHover(0)}
-                onClick={() => setRatingValue(star)}
+                onClick={() => {setRatingValue(star);setRatingHover(0);setRatingError('');}}
               >
                 <Star size={22} fill={(ratingHover || ratingValue) >= star ? 'currentColor' : 'none'} />
               </button>
             ))}
           </div>
-          <button className="chat-action-btn primary" disabled={ratingValue < 1 || ratingSubmitting} onClick={() => void submitRating()}>
-            {ratingSubmitting ? '...' : copy.submitRating}
+          <button type="button" className="chat-action-btn primary" disabled={ratingValue < 1 || ratingSubmitting} aria-busy={ratingSubmitting} onClick={() => void submitRating()}>
+            {ratingSubmitting ? (isAr?'جارٍ الإرسال…':'Submitting…') : copy.submitRating}
           </button>
-          <button className="chat-action-btn" onClick={() => setShowRating(false)}>{copy.cancel}</button>
+          <button type="button" className="chat-action-btn" disabled={ratingSubmitting} onClick={() => {setShowRating(false);setRatingError('');}}>{copy.cancel}</button>
+          {ratingValue<1&&<small className="chat-rating-hint">{isAr?'اختر عدد النجوم أولًا.':'Choose a star rating first.'}</small>}
+          {ratingError&&<p className="feedback error chat-rating-error" role="alert">{ratingError}</p>}
         </div>
       )}
-      {hasRated && (
+      {ratingThanks&&<div className="chat-rated-notice" role="status"><Check size={15}/> {isAr?'شكرًا! تم حفظ تقييمك ❤️':'Thank you! Your rating was saved ❤️'}</div>}
+      {hasRated && !ratingThanks && (
         <div className="chat-rated-notice">
           <Check size={15} /> {copy.rated}
         </div>

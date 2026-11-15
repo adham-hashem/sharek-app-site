@@ -37,7 +37,7 @@ import { LEGAL_URLS, openLegalPage } from '@/lib/legal';
 import { AUTH_FEATURES } from '@/lib/auth-flags';
 import { AccountAuth } from '@/components/AccountAuth';
 import {CharityAcknowledgmentGate} from '@/components/CharityAcknowledgmentGate';
-import {parseMealLink} from '@/lib/meal-share';
+import {parseMealLink,parseCommunityMealLink} from '@/lib/meal-share';
 import {GoodnessMarket,parseMarketLink} from '@/components/GoodnessMarket';
 import {AppUpdateControl} from '@/components/AppUpdateControl';
 import {SharedMealView} from '@/components/SharedMealView';
@@ -139,7 +139,7 @@ const copy: Record<Language, Copy> = {
 
 // Website: a shared meal/marketplace link opens the web app. Remember the target for after sign-in,
 // then show the clean /app/ URL so reloads do not reopen it.
-(()=>{if(Capacitor.isNativePlatform())return;try{const href=window.location.href,marketId=parseMarketLink(href),token=parseMealLink(href);
+(()=>{if(Capacitor.isNativePlatform())return;try{const href=window.location.href,communityMeal=parseCommunityMealLink(href);if(communityMeal){sessionStorage.setItem('sharek-pending-community-meal',JSON.stringify(communityMeal));window.history.replaceState(null,'',import.meta.env.BASE_URL);return;}const marketId=parseMarketLink(href),token=parseMealLink(href);
  if(marketId)sessionStorage.setItem('sharek-pending-marketplace',marketId);else if(token)sessionStorage.setItem('sharek-pending-meal-token',token);else return;
  window.history.replaceState(null,'',import.meta.env.BASE_URL);}catch{/* storage blocked: the URL still carries the link */}})();
 
@@ -147,7 +147,7 @@ function App() {
   const [sharedMealToken,setSharedMealToken]=useState<string|null>(()=>{try{return parseMealLink(window.location.href)??sessionStorage.getItem('sharek-pending-meal-token');}catch{return null;}});
   const closeSharedMeal=useCallback(()=>{setSharedMealToken(null);try{sessionStorage.removeItem('sharek-pending-meal-token');}catch{}},[]);
   useEffect(()=>{
-    const accept=(raw:string)=>{const marketId=parseMarketLink(raw);if(marketId){sessionStorage.setItem('sharek-pending-marketplace',marketId);window.dispatchEvent(new CustomEvent('sharek-open-marketplace',{detail:marketId}));return;}const token=parseMealLink(raw);if(token){setSharedMealToken(token);try{sessionStorage.setItem('sharek-pending-meal-token',token);}catch{}}};
+    const accept=(raw:string)=>{const communityMeal=parseCommunityMealLink(raw);if(communityMeal){try{sessionStorage.setItem('sharek-pending-community-meal',JSON.stringify(communityMeal));}catch{/* storage blocked */}window.dispatchEvent(new CustomEvent('sharek-open-community-meal',{detail:communityMeal}));return;}const marketId=parseMarketLink(raw);if(marketId){sessionStorage.setItem('sharek-pending-marketplace',marketId);window.dispatchEvent(new CustomEvent('sharek-open-marketplace',{detail:marketId}));return;}const token=parseMealLink(raw);if(token){setSharedMealToken(token);try{sessionStorage.setItem('sharek-pending-meal-token',token);}catch{}}};
     if(!Capacitor.isNativePlatform())return;
     const listener=CapacitorApp.addListener('appUrlOpen',({url})=>accept(url));
     void CapacitorApp.getLaunchUrl().then(result=>{if(result?.url)accept(result.url);});
@@ -919,6 +919,26 @@ function HomeScreen({ sharedMealToken,onCloseSharedMeal,language, profile, role,
       return { ok: false, message: language === 'ar' ? 'تعذر فتح المحادثة. تحقق من الاتصال وحاول مرة أخرى.' : 'Could not open the conversation. Check your connection and retry.' };
     }
   };
+  // Shared community meal link (/community/meals/<id>/, optionally ?action=message): open that meal,
+  // or straight into the chat with its owner. Kept in sessionStorage so it survives sign-in.
+  useEffect(()=>{
+    if(!profileId)return;
+    const open=async(target:{mealId:string;message:boolean})=>{
+      try{sessionStorage.removeItem('sharek-pending-community-meal');}catch{/* storage blocked */}
+      if(target.message){
+        const {data}=await supabase.rpc('meal_contact_card',{p_meal_id:target.mealId});
+        const card=data as {donor_id?:string;is_own?:boolean}|null;
+        if(card?.donor_id&&!card.is_own&&(await messageCommunityDonor(target.mealId,card.donor_id)).ok)return;
+      }
+      setNotificationMealId(target.mealId);
+    };
+    let pending:{mealId?:string;message?:boolean}|null=null;
+    try{pending=JSON.parse(sessionStorage.getItem('sharek-pending-community-meal')??'null');}catch{pending=null;}
+    if(pending?.mealId)void open({mealId:pending.mealId,message:pending.message===true});
+    const handler=(event:Event)=>{const detail=(event as CustomEvent<{mealId:string;message:boolean}>).detail;if(detail?.mealId)void open(detail);};
+    window.addEventListener('sharek-open-community-meal',handler);
+    return()=>window.removeEventListener('sharek-open-community-meal',handler);
+  },[profileId]);// eslint-disable-line react-hooks/exhaustive-deps
   const actionLabel = role === 'beneficiary' ? t.needMeal : t.shareMeal;
   const openPrimaryAction = () => { if (role === 'beneficiary') setShowRequest(true); else setDonorTab('share'); };
   const primaryAction = primaryActionCollapsed ? (
@@ -964,8 +984,8 @@ function HomeScreen({ sharedMealToken,onCloseSharedMeal,language, profile, role,
     {showFinancialSupport&&<FinancialSupportScreen language={language} onBack={()=>setShowFinancialSupport(false)}/>}
     {showAdmin && profileId && <AdminDashboard language={language} profileId={profileId} onBack={() => setShowAdmin(false)} />}
     {partnerProfileId&&profileId&&!chatState&&<ProviderProfile language={language} donorId={partnerProfileId} currentUserId={profileId} userLat={userLat} userLng={userLng} communityMeals={community.meals} onBack={()=>setPartnerProfileId(null)}/>}
-    {sharedMealToken&&profileId&&<SharedMealView token={sharedMealToken} language={language} currentUserId={profileId} userLat={userLat} userLng={userLng} onBack={onCloseSharedMeal} onReserve={reserveMeal} onMessageDonor={messageCommunityDonor}/>}
-    {notificationMealId&&profileId&&<MealDetail language={language} mealId={notificationMealId} currentUserId={profileId} userLat={userLat} userLng={userLng} onBack={()=>setNotificationMealId(null)} onReserve={reserveMeal} onMessageDonor={messageCommunityDonor}/>}
+    {sharedMealToken&&profileId&&<SharedMealView token={sharedMealToken} language={language} currentUserId={profileId} userLat={userLat} userLng={userLng} onBack={onCloseSharedMeal} onReserve={reserveMeal} onMessageDonor={async(id,donorId)=>{const result=await messageCommunityDonor(id,donorId);if(result.ok)onCloseSharedMeal();return result;}}/>}
+    {notificationMealId&&profileId&&<MealDetail language={language} mealId={notificationMealId} currentUserId={profileId} userLat={userLat} userLng={userLng} onBack={()=>setNotificationMealId(null)} onReserve={reserveMeal} onMessageDonor={async(id,donorId)=>{const result=await messageCommunityDonor(id,donorId);if(result.ok)setNotificationMealId(null);return result;}}/>}
     {quranView !== 'none' && profileId && quranView === 'dashboard' && <QuranDashboard language={language} userId={profileId} onContinue={(p) => { setQuranPage(p); setQuranView('reader'); }} onOpenReader={(p) => { setQuranPage(p); setQuranView('reader'); }} onOpenBookmarks={() => setQuranView('index')} onOpenIndex={() => setQuranView('index')} onBack={() => setQuranView('none')} />}
     {quranView === 'reader' && profileId && <QuranReader language={language} userId={profileId} initialPage={quranPage} onBack={() => setQuranView('dashboard')} onOpenIndex={() => setQuranView('index')} />}
     {quranView === 'index' && profileId && <QuranIndexNav language={language} userId={profileId} onNavigate={(p) => { setQuranPage(p); setQuranView('reader'); }} onBack={() => setQuranView('dashboard')} onOpenBookmarks={() => setQuranView('index')} />}

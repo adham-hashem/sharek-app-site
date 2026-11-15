@@ -10,7 +10,7 @@ const WhatsAppIcon=()=><svg viewBox="0 0 24 24" width="22" height="22" aria-hidd
 const FacebookIcon=()=><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.2c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12Z"/></svg>;
 const TelegramIcon=()=><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.6 6.8-1.6 7.7c-.1.6-.5.7-1 .4l-2.7-2-1.3 1.3c-.2.2-.3.3-.6.3l.2-2.8 5.1-4.6c.2-.2 0-.3-.3-.1l-6.3 4-2.7-.9c-.6-.2-.6-.6.1-.9l10.6-4.1c.5-.2.9.1.8.7Z"/></svg>;
 
-export function MarketShareSheet({share,language,onClose}:{share:MarketShare;language:Language;onClose:()=>void}){
+export function MarketShareSheet({share,language,onClose,heading}:{share:MarketShare;language:Language;onClose:()=>void;heading?:string}){
   const ar=language==='ar',tr=(a:string,b:string)=>ar?a:b;
   const [copied,setCopied]=useState(false),[error,setError]=useState('');
   const message=`${share.text}\n${share.url}`;
@@ -24,7 +24,7 @@ export function MarketShareSheet({share,language,onClose}:{share:MarketShare;lan
   return <div className="modal-overlay market-share-overlay" onClick={onClose}>
     <div className="modal-card market-share-sheet" role="dialog" aria-modal="true" aria-labelledby="market-share-title" dir={ar?'rtl':'ltr'} onClick={e=>e.stopPropagation()}>
       <header className="market-share-head">
-        <h3 id="market-share-title">{tr('مشاركة المنشور','Share post')}</h3>
+        <h3 id="market-share-title">{heading??tr('مشاركة المنشور','Share post')}</h3>
         <button type="button" className="icon-button" onClick={onClose} aria-label={tr('إغلاق','Close')}><X size={18}/></button>
       </header>
       <p className="market-share-item">{share.text}</p>
@@ -33,7 +33,7 @@ export function MarketShareSheet({share,language,onClose}:{share:MarketShare;lan
         <button type="button" className="market-share-option other" onClick={()=>void other()}><span className="market-share-icon"><Share2 size={20}/></span><span>{tr('تطبيقات أخرى','Other apps')}</span></button>
       </div>
       <div className="market-share-link">
-        <input readOnly dir="ltr" value={share.url} aria-label={tr('رابط المنشور','Post link')} onFocus={e=>e.target.select()}/>
+        <input readOnly dir="ltr" value={share.url} aria-label={tr('الرابط','Link')} onFocus={e=>e.target.select()}/>
         <button type="button" className="primary-button" onClick={copy}>{copied?<Check size={16}/>:<Copy size={16}/>}{copied?tr('تم النسخ','Copied'):tr('نسخ الرابط','Copy link')}</button>
       </div>
       {error&&<p className="feedback error" role="alert">{error}</p>}

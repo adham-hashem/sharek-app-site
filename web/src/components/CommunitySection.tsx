@@ -1,6 +1,8 @@
 import { mealDeadline, sharingLabel, collectionLabel } from '@/lib/meal-sharing';
+import {MarketShareSheet,type MarketShare} from './MarketShareSheet';
+import {communityMealLink} from '@/lib/meal-share';
 import { useEffect, useRef, useState } from 'react';
-import { Heart, MapPin, Star, Utensils, BadgeCheck, Award, Clock, ChevronRight, PackageOpen } from 'lucide-react';
+import { Heart, MapPin, Star, Utensils, BadgeCheck, Award, Clock, ChevronRight, PackageOpen, Share2 } from 'lucide-react';
 import { formatDistance, type CommunityMeal, type Language } from '@/lib/supabase';
 import { ProviderProfile } from './ProviderProfile';
 import { MealDetail } from './MealDetail';
@@ -68,6 +70,7 @@ export function CommunitySection({ language, currentUserId, userLat, userLng, lo
   const isAr = language === 'ar';
   const [selectedDonorId, setSelectedDonorId] = useState<string | null>(null);
   const [selectedMealId, setSelectedMealId] = useState<string | null>(null);
+  const [sharing,setSharing]=useState<MarketShare|null>(null);
   const [now, setNow] = useState(() => Date.now());
   const preferenceKey=`sharek-community-filters-v1:${currentUserId}`;
   const [preferences,setPreferences]=useState<{scope:CommunityScope;radius:number;manual:CommunityOrigin|null}>(()=>{try{const value=JSON.parse(localStorage.getItem(preferenceKey)??'null');if(value&&['nearby','same','other','all'].includes(value.scope)&&(!value.manual||validCoordinates(value.manual.latitude,value.manual.longitude)))return{scope:value.scope as CommunityScope,radius:5,manual:value.manual as CommunityOrigin|null};}catch{/* User preferences are optional. */}return{scope:'nearby',radius:5,manual:null};});
@@ -161,7 +164,7 @@ export function CommunitySection({ language, currentUserId, userLat, userLng, lo
                 {meal.photo_count > 1 && <span className="community-meal-photo-count">1/{meal.photo_count}</span>}
               </div>
               <div className="community-meal-body" onClick={() => setSelectedMealId(meal.id)}>
-                <h3>{meal.name}</h3><span className="meal-sharing-badge">{sharingLabel(meal.sharing_mode, language)} · {collectionLabel(meal.collection_state, language)}</span>
+                <div className="community-meal-title-row"><h3>{meal.name}</h3><button type="button" className="meal-share-icon" onClick={event=>{event.stopPropagation();setSharing({title:`${meal.name} — SHARek`,text:`${meal.name} — ${isAr?'وجبة يشاركها مجتمع SHARek':'A meal shared on SHARek'}`,url:communityMealLink(meal.id)});}} aria-label={isAr?`مشاركة ${meal.name}`:`Share ${meal.name}`}><Share2 size={17}/></button></div><span className="meal-sharing-badge">{sharingLabel(meal.sharing_mode, language)} · {collectionLabel(meal.collection_state, language)}</span>
                 <div className="community-meal-expiry"><Clock size={12} />{isAr ? 'يختفي الساعة' : 'Disappears at'} {formatExpiry(mealDeadline(meal), language)}</div>
                 <div className="community-meal-meta">
                   <span className="community-meal-quantity"><Utensils size={13} />{meal.quantity} {copy.meals}</span>
@@ -185,6 +188,7 @@ export function CommunitySection({ language, currentUserId, userLat, userLng, lo
       )}
       {boundaries&&<small className="community-boundary-credit"><a href={boundaries.sourceUrl} target="_blank" rel="noreferrer">© geoBoundaries</a> · {isAr?'حدود إدارية منشورة':'Published administrative boundaries'} ({boundaries.year})</small>}
       {areaPicker&&<CommunityAreaPicker language={language} initialCountry={country} onClose={()=>setAreaPicker(false)} onChoose={point=>{setPreferences(p=>({...p,scope:'other',manual:point}));setAreaPicker(false);}}/>}
+      {sharing&&<MarketShareSheet share={sharing} language={language} heading={isAr?'مشاركة الوجبة':'Share meal'} onClose={()=>setSharing(null)}/>}
     </div>
   );
 }

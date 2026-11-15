@@ -11,6 +11,10 @@
       "destination": "/api/market/?id=:id"
     },
     {
+      "source": "/community/meals/:id/",
+      "destination": "/api/community-meal/?id=:id"
+    },
+    {
       "source": "/app/:path*/",
       "destination": "/app/"
     }

@@ -1,6 +1,8 @@
 import { mealDeadline, sharingLabel, collectionLabel } from '@/lib/meal-sharing';
+import {MarketShareSheet,type MarketShare} from './MarketShareSheet';
+import {communityMealLink} from '@/lib/meal-share';
 import { useCallback, useEffect, useRef, useState, type TouchEvent } from 'react';
-import { ArrowLeft, ArrowRight, BadgeCheck, Check as CheckIcon, Clock, Flag, Heart, MapPin, MessageCircle, MoreVertical, Star, Trash2, Utensils, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, Check as CheckIcon, Clock, Flag, Heart, MapPin, MessageCircle, MoreVertical, Share2, Star, Trash2, Utensils, X } from 'lucide-react';
 import { supabase, formatDistance, type CommunityMeal, type Language, type Meal, type MealPhoto } from '@/lib/supabase';
 import { PickupMap } from './PickupMap';
 import { validCoordinates } from '@/lib/geo';
@@ -48,6 +50,9 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
   const messagingRef = useRef(false);
   const fetchVersion = useRef(0);
   const [confirmingReserve, setConfirmingReserve] = useState(false);
+  // When the full meal is not visible (reserved, completed, expired…), its owner can still be messaged.
+  const [contact,setContact]=useState<{meal_id:string;name:string;status:string;photo_url:string|null;donor_id:string;donor_name:string|null;donor_avatar:string|null;is_own:boolean}|null>(null);
+  const [sharing,setSharing]=useState<MarketShare|null>(null);
   const [reserveMsg, setReserveMsg] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -137,7 +142,12 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
       }
     } else {
       if (detailRes.error) setLoadError(true);
-      else {setLoadError(false);setMeal((Array.isArray(detailRes.data) ? detailRes.data[0] : detailRes.data) as CommunityMeal ?? null);}
+      else {
+        setLoadError(false);
+        const visible=(Array.isArray(detailRes.data) ? detailRes.data[0] : detailRes.data) as CommunityMeal ?? null;
+        setMeal(visible);
+        if(!visible){const {data:card}=await supabase.rpc('meal_contact_card',{p_meal_id:mealId});if(version===fetchVersion.current)setContact(card??null);}
+      }
     }
     setLoading(false);
   }, [isOwn, mealId]);
@@ -172,12 +182,14 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
     }
   };
 
+  const shareMeal=(id:string,name:string)=>setSharing({title:`${name} — SHARek`,text:`${name} — ${isAr?'وجبة يشاركها مجتمع SHARek':'A meal shared on SHARek'}`,url:communityMealLink(id)});
   const handleMessage = async () => {
-    if (!meal || !onMessageDonor || messagingRef.current) return;
+    const target=meal??(contact&&!contact.is_own?{id:contact.meal_id,donor_id:contact.donor_id}:null);
+    if (!target || !onMessageDonor || messagingRef.current) return;
     messagingRef.current = true; setMessaging(true); setReserveMsg('');
     const failure = isAr ? 'تعذر فتح المحادثة. تحقق من الاتصال وحاول مرة أخرى.' : 'Could not open the conversation. Check your connection and retry.';
     try {
-      const result = await onMessageDonor(meal.id, meal.donor_id);
+      const result = await onMessageDonor(target.id, target.donor_id);
       if (!result.ok) setReserveMsg(result.message || failure);
     } catch { setReserveMsg(failure); }
     finally { messagingRef.current = false; setMessaging(false); }
@@ -207,6 +219,16 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
   const availabilityTime = new Date(meal?.availability_start ?? Date.now()).toLocaleTimeString(isAr ? 'ar-EG' : 'en-US', { hour: 'numeric', minute: '2-digit' });
   const statusLabel = meal?.collection_state ? collectionLabel(meal.collection_state, language) : meal?.status === 'ACTIVE' ? (isAr ? 'متاحة' : 'Available') : meal?.status === 'RESERVED' ? (isAr ? 'محجوزة' : 'Reserved') : (isAr ? 'غير متاحة' : 'Unavailable');
   if (loading) return <div className="community-loading"><div className="loader-dot" /><span>SHARek</span></div>;
+  const sheet=sharing&&<MarketShareSheet share={sharing} language={language} heading={isAr?'مشاركة الوجبة':'Share meal'} onClose={()=>setSharing(null)}/>;
+  if (!meal && contact && !loadError) return <section className="meal-detail-page meal-contact-page" dir={isAr?'rtl':'ltr'}>
+    <header className="my-meals-header"><button className="icon-button" onClick={onBack} aria-label={copy.back}><ArrowLeft size={20}/></button><h2>{contact.name}</h2><button className="icon-button meal-share-icon" onClick={()=>shareMeal(contact.meal_id,contact.name)} aria-label={isAr?'مشاركة الوجبة':'Share meal'}><Share2 size={18}/></button></header>
+    <div className="meal-detail-body">
+      {contact.photo_url&&<img className="meal-detail-cover" src={contact.photo_url} alt={contact.name}/>}
+      <p className="meal-contact-status" role="status">{contact.status==='COMPLETED'?(isAr?'تم استلام هذه الوجبة.':'This meal has been collected.'):contact.status==='EXPIRED'?(isAr?'انتهت صلاحية هذه الوجبة.':'This meal has expired.'):contact.status==='CANCELLED'?(isAr?'أوقف صاحب الوجبة مشاركتها.':'The owner withdrew this meal.'):(isAr?'هذه الوجبة غير متاحة للحجز حاليًا.':'This meal is not available to book right now.')}</p>
+      <div className="meal-contact-owner">{contact.donor_avatar?<img src={contact.donor_avatar} alt=""/>:<span className="meal-contact-avatar"><Heart size={16}/></span>}<span><small>{isAr?'صاحب الوجبة':'Meal owner'}</small><strong>{contact.donor_name??(isAr?'متبرع SHARek':'SHARek donor')}</strong></span></div>
+      {reserveMsg && <div className="feedback error"><X size={16} />{reserveMsg}</div>}
+      {onMessageDonor&&!contact.is_own&&<button className="primary-button" disabled={messaging} onClick={()=>void handleMessage()}><MessageCircle size={18}/>{messaging?(isAr?'جارٍ فتح المحادثة…':'Opening chat…'):copy.messageDonor}</button>}
+    </div>{sheet}</section>;
   if (!meal) return <div className="community-empty"><h3>{loadError?(isAr?'تعذر تحميل تفاصيل الوجبة':'Could not load meal details'):(isAr ? 'الوجبة لم تعد متاحة' : 'Meal is no longer available')}</h3>{loadError&&<button className="secondary-button" onClick={()=>void fetchData()}>{isAr?'إعادة المحاولة':'Retry'}</button>}<button className="text-button" onClick={onBack}>{copy.back}</button></div>;
 
   const displayPhotos = photos.length > 0 ? photos.map((p) => p.url) : (meal.photo_url ? [meal.photo_url] : []);
@@ -225,8 +247,9 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
     <div className="meal-detail-page" dir={isAr ? 'rtl' : 'ltr'}>
       <header className="meal-detail-header">
         <button className="icon-button" onClick={onBack} aria-label={copy.back}><ArrowLeft size={20} /></button>
+        <button className="icon-button meal-share-icon" style={{ marginInlineStart: 'auto' }} onClick={() => shareMeal(meal.id, meal.name)} aria-label={isAr ? 'مشاركة الوجبة' : 'Share meal'}><Share2 size={18} /></button>
         {!isOwn && !meal?.is_own && (
-          <div style={{ position: 'relative', marginLeft: 'auto' }}>
+          <div style={{ position: 'relative' }}>
             <button className="icon-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu"><MoreVertical size={20} /></button>
             {menuOpen && (
               <>
@@ -341,6 +364,7 @@ export function MealDetail({ language, mealId, isOwn, currentUserId, userLat = n
           onClose={() => setShowReport(false)}
         />
       )}
+      {sheet}
     </div>
   );
 }

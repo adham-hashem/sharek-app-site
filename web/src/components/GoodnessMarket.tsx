@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {ArrowLeft,Bookmark,CalendarClock,CheckCircle2,ChevronLeft,ChevronRight,Copy,Flag,Heart,ImagePlus,MapPin,MessageCircle,MessageSquare,MoreHorizontal,PauseCircle,Pencil,PlayCircle,RefreshCw,Search,Send,Share2,Shirt,ThumbsUp,Trash2,X} from 'lucide-react';
+import {ArrowLeft,Bookmark,CalendarClock,CheckCircle2,ChevronLeft,ChevronRight,Copy,Flag,Heart,ImagePlus,MapPin,MessageCircle,MessageSquare,MoreHorizontal,PauseCircle,Pencil,PlayCircle,RefreshCw,Search,Send,Share2,Shirt,Trash2,X} from 'lucide-react';
 import {supabase,formatDistance,type Language} from '@/lib/supabase';
 import {distanceKm,validCoordinates,locationIssue,type LocationFix} from '@/lib/geo';
 import {type PickupPoint} from '@/lib/meal-sharing';
@@ -361,19 +361,15 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
     {item.description&&<p>{item.description.slice(0,160)}</p>}
    </button>
    {!own&&<>
-    <div className="market-post-counts">
-     <span className={item.liked_by_me?'liked':''}><ThumbsUp size={14}/>{item.like_count}</span>
-     <button className="text-button" onClick={()=>openComments(item)}>{item.comment_count} {tr('تعليق','comments')}</button>
+    <div className="social-bar" role="group" aria-label={tr('تفاعلات المنشور','Post interactions')}>
+     <button type="button" className={`social-action like ${item.liked_by_me?'active':''}`} disabled={pending.has(`like-${item.id}`)} aria-pressed={item.liked_by_me} aria-label={tr('إعجاب','Like')} onClick={()=>toggleLike(item)}><Heart size={18} fill={item.liked_by_me?'currentColor':'none'}/><span>{item.like_count>0?item.like_count:tr('إعجاب','Like')}</span></button>
+     <button type="button" className="social-action" aria-label={tr('تعليق','Comment')} onClick={()=>openComments(item)}><MessageSquare size={18}/><span>{item.comment_count>0?item.comment_count:tr('تعليق','Comment')}</span></button>
+     <button type="button" className={`social-action ${item.saved_by_me?'active':''}`} disabled={pending.has(`save-${item.id}`)} aria-pressed={item.saved_by_me} aria-label={item.saved_by_me?tr('محفوظ','Saved'):tr('حفظ','Save')} onClick={()=>toggleSave(item)}><Bookmark size={18} fill={item.saved_by_me?'currentColor':'none'}/><span>{item.saved_by_me?tr('محفوظ','Saved'):tr('حفظ','Save')}</span></button>
+     <button type="button" className="social-action share" disabled={busy} aria-label={tr('مشاركة','Share')} onClick={()=>share(item)}><Share2 size={18}/><span>{tr('مشاركة','Share')}</span></button>
     </div>
-    <div className="market-post-reactions">
-     <button className={item.liked_by_me?'active':''} disabled={pending.has(`like-${item.id}`)} aria-pressed={item.liked_by_me} onClick={()=>toggleLike(item)}><ThumbsUp size={17}/>{tr('إعجاب','Like')}</button>
-     <button onClick={()=>openComments(item)}><MessageSquare size={17}/>{tr('تعليق','Comment')}</button>
-     <button className={item.saved_by_me?'active':''} disabled={pending.has(`save-${item.id}`)} aria-pressed={item.saved_by_me} onClick={()=>toggleSave(item)}><Bookmark size={17}/>{item.saved_by_me?tr('محفوظ','Saved'):tr('حفظ','Save')}</button>
-    </div>
-    <div className="market-post-actions">
-     <button className="secondary-button" disabled={busy} onClick={()=>share(item)}><Share2 size={16}/>{tr('مشاركة','Share')}</button>
-     {!mine&&<button className="primary-button" disabled={busy||item.status!=='available'} onClick={()=>message(item)}><MessageCircle size={16}/>{tr('مراسلة','Message Donor')}</button>}
-     <button className="secondary-button" disabled={!validCoordinates(item.latitude,item.longitude)} onClick={()=>void loadDetail(item.id)}><MapPin size={16}/>{tr('الموقع','Location')}</button>
+    <div className="post-cta-row">
+     {!mine&&<button type="button" className="post-cta" disabled={busy||item.status!=='available'} onClick={()=>message(item)}><MessageCircle size={17}/>{tr('مراسلة صاحب الغرض','Message owner')}</button>}
+     <button type="button" className="post-cta-secondary" disabled={!validCoordinates(item.latitude,item.longitude)} onClick={()=>void loadDetail(item.id)} aria-label={tr('الموقع','Location')}><MapPin size={17}/><span>{tr('الموقع','Location')}</span></button>
     </div>
    </>}
   </article>;})}</div>}</main>}
