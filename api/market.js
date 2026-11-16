@@ -1,3 +1,4 @@
+import {marketEmoji,EMOJI_TINT} from './_emoji.js';
 export const PUBLIC_ORIGIN='https://www.sharek.space';
 const SUPABASE='https://vffncqujwdsvmxjehfgp.supabase.co';
 // Public "anon" key: it is shipped in the web app bundle anyway; access is limited by the database.
@@ -9,18 +10,24 @@ const categories={clothing:'ملابس',school:'أدوات مدرسية',househo
 export function photoUrl(path){return typeof path==='string'&&PHOTO_PATH.test(path)&&!path.includes('..')?`${SUPABASE}/storage/v1/object/public/marketplace-photos/${path.split('/').map(encodeURIComponent).join('/')}`:null;}
 // Uploaded photos can be several MB (WhatsApp often skips previews that large). Vercel's image
 // service fetches the original from public Supabase Storage and serves a 1200 px copy, cached.
+// No photo: a pre-rendered 1200x630 PNG of the item's automatic emoji (assets/og/emoji-<hex>.png).
+export function emojiImage(category,subtype,title){
+ const hex=[...marketEmoji(category,subtype,title)].map(c=>c.codePointAt(0).toString(16)).filter(h=>h!=='fe0f').join('-');
+ return `${PUBLIC_ORIGIN}/assets/og/emoji-${hex}.png`;
+}
 export function previewImage(original){return original?`${PUBLIC_ORIGIN}/_vercel/image?url=${encodeURIComponent(original)}&w=1200&q=80`:null;}
 export function statusText(post){if(post.available)return 'متاح حاليًا';return {completed:'تم تسليم هذا الغرض',expired:'انتهت مدة عرض هذا المنشور',paused:'هذا المنشور موقوف مؤقتًا'}[post.status]??'هذا المنشور غير متاح حاليًا';}
-const style='body{margin:0;background:#fffaf5;color:#38281e;font-family:system-ui,sans-serif;line-height:1.9}main{max-width:640px;margin:24px auto;padding:20px}article{padding:20px;background:white;border:1px solid #eee0d4;border-radius:22px}img{width:100%;max-height:420px;object-fit:contain;border-radius:14px}a{color:#ba4b16}.action{display:block;text-align:center;background:#f06427;color:white;padding:12px;border-radius:14px;text-decoration:none;margin-top:16px}.action.secondary{background:white;color:#ba4b16;border:1px solid #f06427}.status{padding:10px;background:#fff3e8;border-radius:12px}.muted{font-size:.85rem;color:#78665b}.tags{display:flex;gap:8px;flex-wrap:wrap}.tags span{background:#fff3e8;border-radius:999px;padding:2px 12px;font-size:.85rem}';
+const style='body{margin:0;background:#fffaf5;color:#38281e;font-family:system-ui,sans-serif;line-height:1.9}main{max-width:640px;margin:24px auto;padding:20px}article{padding:20px;background:white;border:1px solid #eee0d4;border-radius:22px}img{width:100%;max-height:420px;object-fit:contain;border-radius:14px}.emoji-cover{aspect-ratio:4/3;max-height:320px;border-radius:16px;display:grid;place-items:center;font-size:110px;line-height:1}a{color:#ba4b16}.action{display:block;text-align:center;background:#f06427;color:white;padding:12px;border-radius:14px;text-decoration:none;margin-top:16px}.action.secondary{background:white;color:#ba4b16;border:1px solid #f06427}.status{padding:10px;background:#fff3e8;border-radius:12px}.muted{font-size:.85rem;color:#78665b}.tags{display:flex;gap:8px;flex-wrap:wrap}.tags span{background:#fff3e8;border-radius:999px;padding:2px 12px;font-size:.85rem}';
 const play='https://play.google.com/store/apps/details?id=app.sharek.mobile';
 // post === null: the post was deleted or does not exist; post === undefined: preview service unavailable.
 export function renderPost(post,id){
  const url=`${PUBLIC_ORIGIN}/marketplace/${id}/`,webApp=`${PUBLIC_ORIGIN}/app/marketplace/${id}/`;
  const title=post?`${post.title} — سوق الخير | SHARek`:'سوق الخير | SHARek';
  const description=post?(String(post.description??'').slice(0,180)||'غرض مجاني يشاركه مجتمع SHARek في سوق الخير.'):post===null?'هذا المنشور لم يعد متاحًا في سوق الخير.':'منشور في سوق الخير على SHARek.';
- const image=post?previewImage(photoUrl(post.photo)):null;
+ const realPhoto=post?photoUrl(post.photo):null;
+ const image=post?(realPhoto?previewImage(realPhoto):emojiImage(post.category,post.subtype,post.title)):null;
  const body=post
-  ?`${image?`<img src="${escape(image)}" alt="${escape(post.title)}">`:''}<h1>${escape(post.title)}</h1><div class="tags">${post.category&&categories[post.category]?`<span>${categories[post.category]}</span>`:''}${post.is_free?'<span>مجاني</span>':''}${post.area?`<span>📍 ${escape(post.area)}</span>`:''}</div><p>${escape(post.description)}</p><p class="status" role="status">${escape(statusText(post))}</p><p class="muted">التواصل مع صاحب المنشور وطلب الغرض يتمان بعد تسجيل الدخول على موقع SHARek أو في التطبيق.</p><a class="action" href="${escape(webApp)}">اعرض المنشور على موقع SHARek</a><a class="action secondary" href="${play}">تحميل التطبيق من Google Play</a>`
+  ?`${realPhoto?`<img src="${escape(image)}" alt="${escape(post.title)}">`:`<div class="emoji-cover" role="img" aria-label="${escape(post.title)}" style="background:linear-gradient(145deg,${(EMOJI_TINT[post.category]??['#fff1e8','#ffe0cf'])[0]},${(EMOJI_TINT[post.category]??['#fff1e8','#ffe0cf'])[1]})">${marketEmoji(post.category,post.subtype,post.title)}</div>`}<h1>${escape(post.title)}</h1><div class="tags">${post.category&&categories[post.category]?`<span>${categories[post.category]}</span>`:''}${post.is_free?'<span>مجاني</span>':''}${post.area?`<span>📍 ${escape(post.area)}</span>`:''}</div><p>${escape(post.description)}</p><p class="status" role="status">${escape(statusText(post))}</p><p class="muted">التواصل مع صاحب المنشور وطلب الغرض يتمان بعد تسجيل الدخول على موقع SHARek أو في التطبيق.</p><a class="action" href="${escape(webApp)}">اعرض المنشور على موقع SHARek</a><a class="action secondary" href="${play}">تحميل التطبيق من Google Play</a>`
   :post===null
   ?`<h1>المنشور غير متاح</h1><p class="status" role="status">هذا المنشور حُذف أو لم يعد متاحًا في سوق الخير.</p><a class="action" href="${PUBLIC_ORIGIN}/app/">تصفح سوق الخير على موقع SHARek</a><a class="action secondary" href="${play}">تحميل التطبيق من Google Play</a>`
   :`<h1>منشور في سوق الخير</h1><p class="status" role="status">تعذر تحميل المعاينة الآن.</p><a class="action" href="${escape(webApp)}">اعرض المنشور على موقع SHARek</a><a class="action secondary" href="${play}">تحميل التطبيق من Google Play</a>`;

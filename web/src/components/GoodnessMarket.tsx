@@ -7,6 +7,7 @@ import {PickupMap} from './PickupMap';
 import {resolveLocationAreaInfo as lookupArea,type AreaInfo} from '@/lib/location-area';
 import {MarketShareSheet,type MarketShare} from './MarketShareSheet';
 import {parseSiteLink} from '@/lib/meal-share';
+import {MarketEmoji} from './MarketEmoji';
 import {communityAreas,type BoundaryDataset} from '@/lib/community-areas';
 import {findCommunityArea} from '@/lib/community-filters';
 
@@ -283,8 +284,9 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
   <label>{tr('التصنيف','Category')}<select value={`${draft.category}:${draft.subtype}`} onChange={e=>{const [c,s]=e.target.value.split(':') as [Category,string];setDraft({...draft,category:c,subtype:s});}}>{(Object.keys(subtypes) as Category[]).map(c=><optgroup key={c} label={marketLabel(c,ar)}>{subtypes[c].map(s=><option key={s} value={`${c}:${s}`}>{s==='other'?`${marketLabel(c,ar)} · ${marketLabel('other',ar)}`:marketLabel(s,ar)}</option>)}</optgroup>)}</select></label>
   <label>{tr('اسم الغرض','Item name')}<input required minLength={2} maxLength={120} value={draft.title} placeholder={tr('مثال: جاكيت شتوي للأطفال','e.g. Kids’ winter jacket')} onChange={e=>setDraft({...draft,title:e.target.value})}/></label>
   <label>{tr('الوصف (اختياري)','Description (optional)')}<textarea maxLength={3000} rows={3} value={draft.description} onChange={e=>setDraft({...draft,description:e.target.value})}/></label>
-  <div className="market-field"><span>{tr('الصور','Photos')} <small>{tr('حتى 6 صور','up to 6')}</small></span>
+  <div className="market-field"><span>{tr('الصور','Photos')} <small>{tr('اختياري — حتى 6 صور','Optional — up to 6')}</small></span>
    <div className="market-photo-strip">
+    {draft.photos.length+files.length===0&&<div className="market-emoji-hint"><MarketEmoji category={draft.category} subtype={draft.subtype} title={draft.title} size="form"/><small>{tr('بدون صورة سنعرض هذا الرمز تلقائيًا حسب نوع الغرض واسمه.','Without a photo, this icon is shown automatically based on the item type and name.')}</small></div>}
     {draft.photos.map(path=><div key={path}><img src={marketPhoto(path)} alt=""/><button type="button" className="icon-button" onClick={()=>setDraft({...draft,photos:draft.photos.filter(p=>p!==path)})} aria-label={tr('إزالة الصورة','Remove photo')}><X size={14}/></button></div>)}
     {files.map((file,index)=><div key={`${file.name}-${index}`}><img src={preview(file)} alt=""/><button type="button" className="icon-button" onClick={()=>setFiles(files.filter(f=>f!==file))} aria-label={tr('إزالة الصورة','Remove photo')}><X size={14}/></button></div>)}
     {draft.photos.length+files.length<6&&<label className="market-photo-add"><ImagePlus size={20}/><span>{tr('إضافة','Add')}</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={e=>{pickPhotos(e.target.files);e.target.value='';}}/></label>}
@@ -301,7 +303,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
   {formError&&<p className="feedback error" role="alert">{formError}</p>}
   <button className="primary-button" disabled={busy} type="submit">{busy?tr('جارٍ النشر…','Publishing…'):draft.created_at?tr('حفظ التعديلات','Save changes'):tr('نشر التبرع','Publish donation')}</button>
  </form>
- :detail?<main className="market-detail">{detail.photos.length>0&&<div className="market-photos">{detail.photos.map((path,index)=><img key={path} src={marketPhoto(path)} alt={detail.title} onClick={()=>setViewer({urls:detail.photos.map(marketPhoto),index})}/>)}</div>}
+ :detail?<main className="market-detail">{detail.photos.length===0&&<MarketEmoji category={detail.category} subtype={detail.subtype} title={detail.title} size="hero"/>}{detail.photos.length>0&&<div className="market-photos">{detail.photos.map((path,index)=><img key={path} src={marketPhoto(path)} alt={detail.title} onClick={()=>setViewer({urls:detail.photos.map(marketPhoto),index})}/>)}</div>}
   <div className="market-detail-head"><h2>{detail.title}</h2>{statusBadge(detail)}</div>
   <p className="market-detail-meta">{marketLabel(detail.category,ar)} · {marketLabel(detail.subtype,ar)} · <span className="market-tag free">{tr('مجاني','Free')}</span></p>
   {detail.owner_id===userId&&<p className="market-detail-meta"><CalendarClock size={14}/> {expiryText(detail)}</p>}
@@ -348,7 +350,7 @@ export function GoodnessMarket({language,userId,fix,countryCode,onRetryLocation,
    </header>
    <div className="market-post-media" onTouchStart={event=>onSwipeStart(item,event.touches[0].clientX)} onTouchEnd={event=>onSwipeEnd(item,event.changedTouches[0].clientX)}>
     {shown?<button className="market-post-image" onClick={()=>setViewer({urls:item.photos.map(marketPhoto),index})} aria-label={tr('تكبير الصورة','Enlarge photo')}><img src={marketPhoto(shown)} alt={item.title}/></button>
-     :<button className="market-post-image market-post-image-empty" onClick={()=>void loadDetail(item.id)}><Shirt size={38}/></button>}
+     :<button className="market-post-image market-post-image-empty" onClick={()=>void loadDetail(item.id)} aria-label={item.title}><MarketEmoji category={item.category} subtype={item.subtype} title={item.title} size="card"/></button>}
     {item.photos.length>1&&<>
      <button className="market-post-nav start" aria-label={tr('الصورة السابقة','Previous photo')} onClick={()=>shift(item,ar?1:-1)}><ChevronLeft size={18}/></button>
      <button className="market-post-nav end" aria-label={tr('الصورة التالية','Next photo')} onClick={()=>shift(item,ar?-1:1)}><ChevronRight size={18}/></button>
